@@ -1,0 +1,14 @@
+{
+  "name": "game-heat-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "跨平台短视频游戏话题热度可视化面板与本地热榜采集脚本",
+  "scripts": {
+    "crawl": "node crawl_all_node.js",
+    "crawl:check": "node crawl_and_check.js",
+    "check": "node --check crawl_all_node.js && node --check crawl_and_check.js && node --check refresh_archive_games.js"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}
