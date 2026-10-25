@@ -1,0 +1,28 @@
+{
+  "platform": "抖音热榜",
+  "date": "2026-10-11",
+  "lastUpdated": "2026-10-11T14:12:49.065Z",
+  "total": 2,
+  "items": [
+    {
+      "rank": "44",
+      "title": "蛋仔派对的视角也太萌了吧",
+      "heat": "765.2万",
+      "url": "https://www.douyin.com/hot/2688873/%E8%9B%8B%E4%BB%94%E6%B4%BE%E5%AF%B9%E7%9A%84%E8%A7%86%E8%A7%92%E4%B9%9F%E5%A4%AA%E8%90%8C%E4%BA%86%E5%90%A7",
+      "games": [
+        "蛋仔派对"
+      ],
+      "firstSeenAt": "2026-10-11T04:12:45.133Z"
+    },
+    {
+      "rank": "46",
+      "title": "pick你心中的蛋仔顶流",
+      "heat": "765.0万",
+      "url": "https://www.douyin.com/hot/2688905/pick%E4%BD%A0%E5%BF%83%E4%B8%AD%E7%9A%84%E8%9B%8B%E4%BB%94%E9%A1%B6%E6%B5%81",
+      "games": [
+        "蛋仔派对"
+      ],
+      "firstSeenAt": "2026-10-11T04:12:45.133Z"
+    }
+  ]
+}

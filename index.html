@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>热门游戏内容平台热度监测</title>
+  <link rel="stylesheet" href="css/style.css?v=20261012">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header__inner">
+      <div class="header__left">
+        <div class="header__icon">
+          <svg viewBox="0 0 256 256">
+            <line x1="152" y1="108" x2="184" y2="108" stroke-linecap="round"/>
+            <line x1="168" y1="92" x2="168" y2="124" stroke-linecap="round"/>
+            <line x1="104" y1="108" x2="88" y2="108" stroke-linecap="round"/>
+            <path d="M195.7,216.9C190.5,220.3,176,224,176,224H80s-14.5-3.7-19.7-7.1C36.1,200.5,32,176,32,128c0-44.2,24-80,56-80h80c32,0,56,35.8,56,80C224,176,219.9,200.5,195.7,216.9Z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="header__title">热门游戏内容平台热度监测</h1>
+          <p class="header__subtitle">跨平台短视频话题追踪</p>
+        </div>
+      </div>
+      <div class="header__right"></div>
+      <div class="header__date" id="hdrDate"></div>
+    </div>
+  </header>
+
+  <!-- 主导航（位于标题下方） -->
+  <div class="subnav">
+    <div class="subnav__inner">
+      <nav class="main-nav" aria-label="主导航">
+        <a href="index.html" class="main-nav__item is-active">话题热度</a>
+        <a href="game-hot-list.html" class="main-nav__item">平台热榜</a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="container">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group date-picker">
+        <label>日期范围</label>
+        <div class="date-picker__btn" id="drpBtn">
+          <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
+            <rect x="40" y="40" width="176" height="176" rx="8"/>
+            <line x1="176" y1="24" x2="176" y2="56"/>
+            <line x1="80" y1="24" x2="80" y2="56"/>
+            <line x1="40" y1="88" x2="216" y2="88"/>
+          </svg>
+          <span id="drpLabel">全部日期</span>
+        </div>
+        <div class="date-picker__popup" id="drpPop">
+          <div class="date-picker__sidebar" id="drpSide"></div>
+          <div class="date-picker__calendars" id="drpCalendars"></div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label>平台</label>
+        <div class="platform-tabs" id="platformTabs"></div>
+      </div>
+
+      <div class="filter-group game-selector">
+        <label>游戏（多选对比）</label>
+        <div class="game-selector__chips" id="gameChips">
+          <span style="color:#9ca3af;font-size:13px" id="gph">点击选择游戏...</span>
+        </div>
+        <div class="game-dropdown" id="gdd">
+          <input class="game-dropdown__search" id="gsearch" placeholder="搜索游戏...">
+          <div id="glist"></div>
+        </div>
+      </div>
+
+
+    </div>
+
+    <!-- Stats: one column per platform -->
+    <div class="stats-grid" id="statsArea"></div>
+
+    <!-- Platform Charts -->
+    <div class="section-title">
+      <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+        <polyline points="224 208 32 208 32 48"/>
+        <polyline points="224 96 160 152 96 104 32 168"/>
+      </svg>
+      <span>平台数据分析</span>
+      <div class="section-title__actions">
+        <button class="download-btn download-btn--ghost" id="downloadHeatBtn" type="button">下载热度数据</button>
+        <button class="download-btn download-btn--ghost" id="downloadWorkBtn" type="button">下载作品数</button>
+      </div>
+    </div>
+    <div class="analysis-toolbar" id="analysisToolbar"></div>
+    <div id="platformChartsArea"></div>
+
+    <!-- Ranking -->
+    <div class="section-title">
+      <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+        <line x1="96" y1="240" x2="160" y2="240"/>
+        <line x1="128" y1="176" x2="128" y2="240"/>
+        <path d="M56,56H200v48a72,72,0,0,1-144,0Z"/>
+        <path d="M200,80h24a16,16,0,0,1,16,16v16a48,48,0,0,1-48,48h-8"/>
+        <path d="M56,80H32A16,16,0,0,0,16,96v16a48,48,0,0,0,48,48h8"/>
+      </svg>
+      <span>游戏话题热度排行榜</span>
+      <div class="section-title__actions">
+        <button class="download-btn download-btn--ghost" id="downloadHotBtn" type="button">下载热榜</button>
+      </div>
+    </div>
+    <div class="rank-card" id="rankCard"></div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__title">数据说明</div>
+    <div class="footer__text">数据为静态快照，来源：抖音 / 快手 / B站 / 小红书公开话题页。</div>
+    <div class="footer__text">数据口径：抖音、快手、小红书为话题累计；B站为 2025.9.1 至今话题累计。</div>
+  </footer>
+
+  <script type="module" src="js/app.js?v=20261012"></script>
+</body>
+</html>

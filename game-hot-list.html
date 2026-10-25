@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>平台热榜 - 热门游戏内容平台热度监测</title>
+  <link rel="stylesheet" href="css/style.css?v=20260421e">
+  <style>
+    .hot-hero {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hot-hero::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -20px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hot-hero::after {
+      content: '';
+      position: absolute;
+      bottom: -30px; left: 30%;
+      width: 150px; height: 150px;
+      background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hot-hero__left { position: relative; z-index: 1; }
+    .hot-hero__title { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; margin-bottom: 4px; }
+    .hot-hero__sub { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 400; }
+    .hot-hero__right { position: relative; z-index: 1; text-align: right; }
+    .hot-hero__refresh { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+    .hot-hero__timer { font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+    .hot-hero__next { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+
+    .hot-filter {
+      background: var(--color-card);
+      border-radius: var(--radius);
+      padding: 16px 22px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .hot-filter__group { display: flex; flex-direction: column; gap: 6px; }
+    .hot-filter__label { font-size: 11px; font-weight: 600; color: var(--color-text-tertiary); letter-spacing: 0.02em; text-transform: uppercase; }
+    .hot-filter__tabs { display: flex; gap: 4px; }
+
+    .hot-tab {
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 150ms ease;
+      font-family: var(--font-sans);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .hot-tab:hover { background: var(--color-primary-light); color: var(--color-primary); }
+    .hot-tab.is-active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+    .hot-tab .count { font-size: 11px; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+    .hot-tab.is-active .count { background: rgba(255,255,255,0.25); }
+    .hot-tab:not(.is-active) .count { background: var(--color-primary-light); color: var(--color-primary); }
+
+    /* 游戏筛选（与话题热度页一致：chips + 搜索下拉） */
+    .hot-game-selector { position: relative; flex: 1; min-width: 260px; }
+    .hot-game-chips-box {
+      min-height: 38px;
+      padding: 6px 10px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+    .hot-game-chips-box:hover { border-color: var(--color-primary); }
+    .hot-game-chips-box:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-light); }
+    .hot-game-chips-box .placeholder { color: var(--color-text-tertiary); font-size: 13px; }
+    .chip-selected {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px 3px 10px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+      font-family: var(--font-sans);
+    }
+    .chip-selected__remove {
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      opacity: 0.6;
+      margin-left: 2px;
+    }
+    .chip-selected__remove:hover { opacity: 1; }
+
+    .hot-game-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-popup);
+      z-index: 30;
+      max-height: 320px;
+      overflow: hidden;
+      display: none;
+    }
+    .hot-game-dropdown.is-visible { display: block; }
+    .hot-game-dropdown__search {
+      width: 100%;
+      padding: 10px 14px;
+      border: 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 13px;
+      outline: none;
+      font-family: var(--font-sans);
+      background: var(--color-bg);
+    }
+    .hot-game-dropdown__list { max-height: 260px; overflow-y: auto; padding: 4px 0; }
+    .hot-game-dropdown__item {
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--color-text);
+    }
+    .hot-game-dropdown__item:hover { background: var(--color-primary-light); }
+    .hot-game-dropdown__item.is-selected { color: var(--color-primary); font-weight: 500; }
+    .hot-game-dropdown__check { width: 16px; color: var(--color-primary); }
+    .hot-game-dropdown__count { margin-left: auto; color: var(--color-text-tertiary); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .hot-game-dropdown__empty { padding: 20px; text-align: center; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .platform-section { margin-bottom: 32px; }
+    .platform-section__header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .platform-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; color: #fff; }
+    .platform-badge--douyin { background: #fe2c55; }
+    .platform-badge--kuaishou { background: #ff4906; }
+    .platform-badge--bilibili { background: #fb7299; }
+    .platform-badge--weibo { background: #e6162d; }
+    .platform-section__count { font-size: 12px; color: var(--color-text-tertiary); margin-left: auto; }
+    .platform-section__crawl-time { font-size: 11px; color: var(--color-text-tertiary); }
+
+    .hot-table { background: var(--color-card); border-radius: var(--radius); border: 1px solid var(--color-border); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .hot-table table { width: 100%; border-collapse: collapse; }
+    .hot-table th { padding: 10px 16px; font-size: 11px; font-weight: 600; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; text-align: left; background: var(--color-bg); border-bottom: 1px solid var(--color-border); }
+    .hot-table td { padding: 11px 16px; font-size: 13px; color: var(--color-text); border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+    .hot-table tr:last-child td { border-bottom: none; }
+    .hot-table tr:hover td { background: rgba(99,102,241,0.03); }
+    .hot-table tr.is-game td { background: rgba(99,102,241,0.04); }
+    .hot-table tr.is-game:hover td { background: rgba(99,102,241,0.07); }
+
+    .rank-cell { font-weight: 700; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; width: 56px; font-size: 12px; }
+    tr.is-game .rank-cell { color: var(--color-primary); }
+    .title-cell { max-width: 480px; }
+    .title-cell__text { line-height: 1.5; word-break: break-word; }
+    .title-cell__link { color: var(--color-text); text-decoration: none; font-weight: 600; }
+    .title-cell__link:hover { color: var(--color-primary); text-decoration: underline; }
+    .title-cell__link::after { content: '↗'; margin-left: 4px; font-size: 11px; color: var(--color-primary); opacity: .75; }
+    .game-tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; background: var(--color-primary-light); color: var(--color-primary); margin-left: 6px; vertical-align: middle; }
+    .heat-cell { font-variant-numeric: tabular-nums; color: var(--color-text-secondary); font-size: 12px; width: 90px; text-align: right; }
+
+    .state-empty, .state-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--color-text-tertiary); gap: 12px; }
+    .state-empty svg, .state-loading svg { width: 40px; height: 40px; opacity: 0.4; }
+    .state-empty p, .state-loading p { font-size: 14px; }
+    .state-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .platforms-grid { display: grid; grid-template-columns: 1fr; gap: 28px; }
+
+    @media (max-width: 768px) {
+      .hot-hero { flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
+      .hot-hero__right { text-align: left; }
+      .hot-filter { padding: 14px 16px; }
+      .title-cell { max-width: 200px; }
+      .hot-table td { padding: 10px 12px; }
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary); }
+
+    /* 模式切换：最新 / 离线 */
+    .hot-mode-switch {
+      display: inline-flex;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 4px;
+      gap: 2px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-xs);
+    }
+    .hot-mode-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border: 0;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 150ms ease;
+      font-family: var(--font-sans);
+      white-space: nowrap;
+    }
+    .hot-mode-btn:hover {
+      color: var(--color-primary);
+    }
+    .hot-mode-btn.is-active {
+      background: var(--color-primary);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(99, 102, 241, 0.25);
+    }
+    .hot-mode-btn.is-active:hover { color: #fff; }
+
+    /* 离线模式的日期选择器 */
+    .hot-hero--offline {
+      background: linear-gradient(135deg, #4a044e 0%, #5b21b6 50%, #1e40af 100%);
+    }
+    .offline-date-label {
+      display: block;
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+      text-align: right;
+    }
+    .offline-date-input {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      color: #fff;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      font-variant-numeric: tabular-nums;
+      outline: none;
+      cursor: pointer;
+      transition: all 150ms ease;
+      color-scheme: dark;
+    }
+    .offline-date-input:hover {
+      background: rgba(255,255,255,0.22);
+      border-color: rgba(255,255,255,0.4);
+    }
+    .offline-date-input:focus {
+      background: rgba(255,255,255,0.25);
+      border-color: rgba(255,255,255,0.5);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
+    }
+
+    /* 离线时间点选择条 */
+    .offline-timebar {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .offline-timebar__label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-tertiary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .offline-timebar__chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      flex: 1;
+    }
+    .offline-time-chip {
+      padding: 6px 12px;
+      border-radius: 18px;
+      font-size: 12px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 150ms ease;
+      font-family: var(--font-sans);
+    }
+    .offline-time-chip:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+    .offline-time-chip.is-active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(99, 102, 241, 0.25);
+    }
+    .offline-empty {
+      font-size: 13px;
+      color: var(--color-text-tertiary);
+    }
+    .offline-download-btn {
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid rgba(99,102,241,0.22);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--color-primary);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      transition: all .16s ease;
+    }
+    .offline-download-btn:hover {
+      border-color: var(--color-primary);
+      transform: translateY(-1px);
+    }
+    .offline-download-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header__inner">
+      <div class="header__left">
+        <div class="header__icon">
+          <svg viewBox="0 0 256 256">
+            <line x1="152" y1="108" x2="184" y2="108" stroke-linecap="round"/>
+            <line x1="168" y1="92" x2="168" y2="124" stroke-linecap="round"/>
+            <line x1="104" y1="108" x2="88" y2="108" stroke-linecap="round"/>
+            <path d="M195.7,216.9C190.5,220.3,176,224,176,224H80s-14.5-3.7-19.7-7.1C36.1,200.5,32,176,32,128c0-44.2,24-80,56-80h80c32,0,56,35.8,56,80C224,176,219.9,200.5,195.7,216.9Z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="header__title">热门游戏内容平台热度监测</h1>
+          <p class="header__subtitle">跨平台短视频话题追踪</p>
+        </div>
+      </div>
+      <div class="header__right"></div>
+      <div class="header__date" id="hdrDate"></div>
+    </div>
+  </header>
+
+  <!-- 主导航（位于标题下方） -->
+  <div class="subnav">
+    <div class="subnav__inner">
+      <nav class="main-nav" aria-label="主导航">
+        <a href="index.html" class="main-nav__item">话题热度</a>
+        <a href="game-hot-list.html" class="main-nav__item is-active">平台热榜</a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="container">
+    <!-- 模式切换：最新 / 离线 -->
+    <div class="hot-mode-switch">
+      <button class="hot-mode-btn is-active" data-mode="live" id="modeLive">
+        <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><circle cx="128" cy="128" r="32"/><path d="M78.5,177.5a72,72,0,0,1,0-99"/><path d="M177.5,78.5a72,72,0,0,1,0,99"/><path d="M52.2,203.8a112,112,0,0,1,0-151.6"/><path d="M203.8,52.2a112,112,0,0,1,0,151.6"/></svg>
+        <span>最新热榜</span>
+      </button>
+      <button class="hot-mode-btn" data-mode="offline" id="modeOffline">
+        <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="40" y="40" width="176" height="176" rx="8"/><line x1="176" y1="24" x2="176" y2="56"/><line x1="80" y1="24" x2="80" y2="56"/><line x1="40" y1="88" x2="216" y2="88"/></svg>
+        <span>离线热榜</span>
+      </button>
+    </div>
+
+    <div class="hot-hero" id="liveHero">
+      <div class="hot-hero__left">
+        <div class="hot-hero__title">跨平台游戏热榜</div>
+        <div class="hot-hero__sub">抖音 · 快手 · B站 · 微博 热榜数据快照</div>
+      </div>
+      <div class="hot-hero__right">
+        <div class="hot-hero__refresh">静态数据</div>
+        <div class="hot-hero__next">更新于 2026-10-12</div>
+      </div>
+    </div>
+
+    <div class="hot-hero hot-hero--offline" id="offlineHero" style="display:none;">
+      <div class="hot-hero__left">
+        <div class="hot-hero__title">离线历史热榜</div>
+        <div class="hot-hero__sub">按天保存的游戏话题快照，同日去重</div>
+      </div>
+      <div class="hot-hero__right">
+        <label class="offline-date-label" for="offlineDate">选择日期</label>
+        <input type="date" id="offlineDate" class="offline-date-input">
+        <button class="offline-download-btn" id="downloadOfflineHotBtn" type="button">下载离线热榜</button>
+      </div>
+    </div>
+
+    <div class="offline-timebar" id="offlineTimebar" style="display:none;">
+      <span class="offline-timebar__label">该日快照时间点</span>
+      <div class="offline-timebar__chips" id="offlineTimeBox"></div>
+    </div>
+
+    <div class="hot-filter">
+      <div class="hot-filter__group">
+        <div class="hot-filter__label">平台</div>
+        <div class="hot-filter__tabs" id="platformTabs"></div>
+      </div>
+      <div class="hot-filter__group hot-game-selector">
+        <div class="hot-filter__label">游戏筛选</div>
+        <div class="hot-game-chips-box" id="gameChipsBox">
+          <span class="placeholder" id="gameChipsPh">点击选择游戏...</span>
+        </div>
+        <div class="hot-game-dropdown" id="gameDropdown">
+          <input type="text" class="hot-game-dropdown__search" id="gameSearchInput" placeholder="搜索游戏...">
+          <div class="hot-game-dropdown__list" id="gameDropdownList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="contentArea">
+      <div class="state-loading">
+        <div class="spinner"></div>
+        <p>正在加载热榜数据...</p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    /**
+     * 游戏关键词列表（显示名 → 识别别名数组）
+     * 命中任意别名即视为该游戏相关
+     */
+    const GAME_DICT = [
+      { name: '原神', aliases: ['原神', '派蒙'] },
+      { name: '元梦之星', aliases: ['元梦之星'] },
+      { name: '永劫无间手游', aliases: ['永劫无间手游'] },
+      { name: '异环', aliases: ['异环'] },
+      { name: '英雄联盟手游', aliases: ['英雄联盟手游', 'LOL手游'] },
+      { name: '燕云十六声', aliases: ['燕云十六声'] },
+      { name: '无畏契约：源能行动', aliases: ['无畏契约：源能行动', '无畏契约:源能行动', '源能行动'] },
+      { name: '无畏契约', aliases: ['无畏契约', 'Valorant'] },
+      { name: '我的世界', aliases: ['我的世界', 'Minecraft'] },
+      { name: '王者荣耀世界', aliases: ['王者荣耀世界'] },
+      { name: '王者万象棋', aliases: ['王者万象棋'] },
+      { name: '王者荣耀', aliases: ['王者荣耀', '王者', '敖丙', '敖隐', '墨子', '碎光执事'] },
+      { name: '使命召唤手游', aliases: ['使命召唤手游', 'COD手游'] },
+      { name: '三角洲行动', aliases: ['三角洲行动', '三角洲', '红狼', '零号大坝', '麦小鼠', '洲彦祖'] },
+      { name: '七日世界', aliases: ['七日世界'] },
+      { name: '逆战：未来', aliases: ['逆战：未来', '逆战:未来', '逆战未来'] },
+      { name: '逆水寒手游', aliases: ['逆水寒手游'] },
+      { name: '鸣潮', aliases: ['鸣潮'] },
+      { name: '明日方舟：终末地', aliases: ['明日方舟：终末地', '明日方舟:终末地', '明日方舟终末地', '终末地'] },
+      { name: '明日方舟', aliases: ['明日方舟'] },
+      { name: '洛克王国世界', aliases: ['洛克王国世界', '洛克王国'] },
+      { name: '绝区零', aliases: ['绝区零'] },
+      { name: '金铲铲之战', aliases: ['金铲铲之战', '金铲铲'] },
+      { name: '火影忍者手游', aliases: ['火影忍者手游', '火影手游'] },
+      { name: '和平精英', aliases: ['和平精英'] },
+      { name: '光遇', aliases: ['光遇'] },
+      { name: '第五人格', aliases: ['第五人格'] },
+      { name: '蛋仔派对', aliases: ['蛋仔派对', '蛋仔'] },
+      { name: '穿越火线：枪战王者', aliases: ['穿越火线：枪战王者', '穿越火线:枪战王者', '穿越火线枪战王者', 'CF手游'] },
+      { name: '穿越火线', aliases: ['穿越火线', 'CF'] },
+      { name: '超自然行动组', aliases: ['超自然行动组'] },
+      { name: '崩坏：星穹铁道', aliases: ['崩坏：星穹铁道', '崩坏:星穹铁道', '崩坏星穹铁道', '崩铁', '星穹铁道', '星铁'] },
+      { name: '暗区突围', aliases: ['暗区突围'] },
+      { name: 'QQ飞车手游', aliases: ['QQ飞车手游', 'QQ飞车'] },
+      { name: 'PUBG', aliases: ['PUBG', '绝地求生'] },
+      { name: '地下城与勇士：起源', aliases: ['地下城与勇士：起源', '地下城与勇士:起源', '地下城与勇士起源', 'DNF手游', '地下城起源'] }
+    ];
+    // 用于识别（别名匹配，按长度降序，保证"王者荣耀世界"优先于"王者荣耀"命中）
+    const MATCH_ENTRIES = GAME_DICT
+      .flatMap(g => g.aliases.map(a => ({ name: g.name, alias: a })))
+      .sort((a, b) => b.alias.length - a.alias.length);
+
+    // 5 个平台（最新 / 离线共用）
+    const PLATFORMS = [
+      { key: 'douyin',         name: '抖音',     badgeClass: 'douyin',   file: 'douyin_hot_list.json' },
+      { key: 'kuaishou',       name: '快手',     badgeClass: 'kuaishou', file: 'kuaishou_hot_list.json' },
+      { key: 'bilibili',       name: 'B站-总体', badgeClass: 'bilibili', file: 'bilibili_hot_list.json' },
+      { key: 'bilibili_game',  name: 'B站-游戏', badgeClass: 'bilibili', file: 'bilibili_game_hot_list.json' },
+      { key: 'weibo',          name: '微博',     badgeClass: 'weibo',    file: 'weibo_hot_list.json' }
+    ];
+
+    let currentMode = 'live';
+    let allData = {};
+    let offlineData = {};
+    let offlineIndex = { snapshots: [] };
+    let offlineDate = '';
+    let offlineSnapshotId = '';
+    let selectedPlatform = 'douyin';
+    let selectedGames = [];
+
+    const curData = () => currentMode === 'live' ? allData : offlineData;
+
+    /** 检测标题 + UP主中包含的所有游戏（返回去重后的 name 数组） */
+    function detectGames(title, author = '', tags = []) {
+      const tagText = Array.isArray(tags) ? tags.join(' ') : String(tags || '');
+      const text = `${title || ''} ${author || ''} ${tagText}`;
+      if (!text.trim()) return [];
+      const found = new Set();
+      const hits = [];
+      for (const e of MATCH_ENTRIES) {
+        if (text.includes(e.alias)) {
+          found.add(e.name);
+          hits.push(e);
+        }
+      }
+      // 子串互斥：当命中更具体的别名（如"王者万象棋""明日方舟终末地"）时，
+      // 剔除被其包含的父话题（如"王者荣耀""明日方舟"），避免把子话题误判成父话题
+      for (const e of hits) {
+        for (const o of hits) {
+          if (e.name === o.name) continue;
+          if (o.alias.length > e.alias.length && o.alias.includes(e.alias)) {
+            found.delete(e.name);
+          }
+        }
+      }
+      return Array.from(found);
+    }
+
+    document.getElementById('hdrDate').textContent = '静态数据快照';
+
+    async function init() {
+      document.getElementById('modeLive').addEventListener('click', () => switchMode('live'));
+      document.getElementById('modeOffline').addEventListener('click', () => switchMode('offline'));
+      document.getElementById('downloadOfflineHotBtn')?.addEventListener('click', downloadOfflineHot);
+
+      document.getElementById('offlineDate').addEventListener('change', (e) => {
+        offlineDate = e.target.value;
+        const snap = offlineIndex.snapshots.find(s => s.date === offlineDate);
+        offlineSnapshotId = snap ? snap.id : '';
+        if (offlineSnapshotId) {
+          loadOfflineSnapshot();
+        } else {
+          offlineData = {};
+          renderPlatformTabs(); renderGameChips(); renderGameDropdown(); renderContent();
+        }
+      });
+
+      setupGameSelector();
+      await loadLiveData();
+      await loadOfflineIndex();
+      applyMode();
+      renderGameDropdown();
+    }
+
+    function switchMode(mode) {
+      if (currentMode === mode) return;
+      currentMode = mode;
+      document.getElementById('modeLive').classList.toggle('is-active', mode === 'live');
+      document.getElementById('modeOffline').classList.toggle('is-active', mode === 'offline');
+      applyMode();
+    }
+
+    function applyMode() {
+      const liveHero = document.getElementById('liveHero');
+      const offlineHero = document.getElementById('offlineHero');
+      const offlineTimebar = document.getElementById('offlineTimebar');
+      if (currentMode === 'live') {
+        liveHero.style.display = '';
+        offlineHero.style.display = 'none';
+        if (offlineTimebar) offlineTimebar.style.display = 'none';
+      } else {
+        liveHero.style.display = 'none';
+        offlineHero.style.display = '';
+        if (offlineTimebar) offlineTimebar.style.display = 'none';
+        // 初始化离线：选择最新日期
+        if (!offlineSnapshotId && offlineIndex.snapshots.length) {
+          const latest = offlineIndex.snapshots[offlineIndex.snapshots.length - 1];
+          offlineDate = latest.date;
+          offlineSnapshotId = latest.id;
+          setupOfflineDatePicker();
+          loadOfflineSnapshot();
+          return;
+        }
+        setupOfflineDatePicker();
+      }
+      renderPlatformTabs();
+      renderGameChips();
+      renderGameDropdown();
+      renderContent();
+    }
+
+    // ========== 最新快照：加载 hot_list_output/*.json ==========
+    async function loadLiveData() {
+      await Promise.all(PLATFORMS.map(async (p) => {
+        try {
+          const resp = await fetch(`hot_list_output/${p.file}?t=${Date.now()}`);
+          if (!resp.ok) throw new Error('fetch failed');
+          allData[p.key] = await resp.json();
+        } catch (e) {
+          allData[p.key] = { items: [], crawlTime: '' };
+        }
+      }));
+    }
+
+    // ========== 离线：加载归档索引 ==========
+    async function loadOfflineIndex() {
+      try {
+        const resp = await fetch(`hot_list_output/archive/index.json?t=${Date.now()}`);
+        if (resp.ok) offlineIndex = await resp.json();
+      } catch (e) {
+        offlineIndex = { snapshots: [] };
+      }
+    }
+
+    function setupOfflineDatePicker() {
+      const input = document.getElementById('offlineDate');
+      const dates = [...new Set(offlineIndex.snapshots.map(s => s.date))].sort();
+      if (!dates.length) {
+        input.disabled = true;
+        input.value = '';
+        return;
+      }
+      input.disabled = false;
+      input.min = dates[0];
+      input.max = dates[dates.length - 1];
+      if (!offlineDate) offlineDate = dates[dates.length - 1];
+      input.value = offlineDate;
+    }
+
+    function renderOfflineTimePicker() { /* deprecated: 离线按天保存单份，无需时间点 */ }
+
+    function downloadBlob(filename, blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 60000);
+    }
+
+    function htmlEsc(value) {
+      return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function downloadExcelRows(filename, rows) {
+      const html = `<!doctype html><html><head><meta charset="UTF-8"></head><body><table>${rows.map(row => `<tr>${row.map(cell => `<td>${htmlEsc(Array.isArray(cell) ? cell.join('、') : cell)}</td>`).join('')}</tr>`).join('')}</table></body></html>`;
+      downloadBlob(filename, new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' }));
+    }
+
+    function downloadOfflineHot() {
+      if (currentMode !== 'offline') switchMode('offline');
+      const btn = document.getElementById('downloadOfflineHotBtn');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+      try {
+        const data = curData();
+        const snap = offlineIndex.snapshots.find(s => s.id === offlineSnapshotId);
+        const dateText = snap?.date || offlineDate || new Date().toISOString().slice(0, 10);
+        const rows = [['日期', '平台', '排名', '标题/热榜话题', '热度/播放量', '作者', '链接', '匹配游戏', '更新时间']];
+        PLATFORMS.forEach(p => {
+          const pdata = data[p.key] || {};
+          (pdata.items || []).forEach(item => {
+            const games = item.games || detectGames(item.title || '', item.author || '', item.tags || []);
+            if (selectedGames.length && !selectedGames.some(g => games.includes(g))) return;
+            rows.push([
+              dateText,
+              p.name,
+              item.rank || '',
+              item.title || item.caption || '',
+              item.heat || item.viewCount || '',
+              item.author || '',
+              item.url || '',
+              games,
+              pdata.lastUpdated || pdata.crawlTime || '',
+            ]);
+          });
+        });
+        downloadExcelRows(`离线热榜_${dateText}.xls`, rows);
+        if (btn) { btn.textContent = '已生成'; setTimeout(() => { btn.textContent = oldText; }, 1200); }
+      } catch (err) {
+        console.error('download offline hot failed', err);
+        alert('下载失败，请刷新后重试');
+        if (btn) btn.textContent = oldText;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function loadOfflineSnapshot() {
+      if (!offlineSnapshotId) { offlineData = {}; renderContent(); return; }
+      offlineData = {};
+      await Promise.all(PLATFORMS.map(async (p) => {
+        try {
+          const resp = await fetch(`hot_list_output/archive/${offlineSnapshotId}/${p.key}.json?t=${Date.now()}`);
+          if (!resp.ok) throw new Error('fetch failed');
+          offlineData[p.key] = await resp.json();
+        } catch (e) {
+          offlineData[p.key] = { items: [], crawlTime: '' };
+        }
+      }));
+      renderPlatformTabs();
+      renderGameChips();
+      renderGameDropdown();
+      renderContent();
+    }
+
+    // ========== 公共渲染 ==========
+    function renderPlatformTabs() {
+      const c = document.getElementById('platformTabs');
+      c.innerHTML = '';
+      PLATFORMS.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'hot-tab' + (p.key === selectedPlatform ? ' is-active' : '');
+        const count = (curData()[p.key]?.items?.length || 0);
+        btn.innerHTML = `<span>${p.name}</span><span class="count">${count}</span>`;
+        btn.addEventListener('click', () => { selectedPlatform = p.key; renderPlatformTabs(); renderContent(); });
+        c.appendChild(btn);
+      });
+    }
+
+    function renderGameChips() {
+      const box = document.getElementById('gameChipsBox');
+      const ph = document.getElementById('gameChipsPh');
+      if (!box) return;
+      // 清掉旧的选中 chip
+      box.querySelectorAll('.chip-selected').forEach(el => el.remove());
+      if (!selectedGames.length) {
+        ph.style.display = '';
+      } else {
+        ph.style.display = 'none';
+        selectedGames.forEach(name => {
+          const chip = document.createElement('span');
+          chip.className = 'chip-selected';
+          chip.innerHTML = `${esc(name)}<span class="chip-selected__remove">&times;</span>`;
+          chip.querySelector('.chip-selected__remove').addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectedGames = selectedGames.filter(g => g !== name);
+            renderGameChips();
+            renderGameDropdown();
+            renderContent();
+          });
+          box.insertBefore(chip, ph);
+        });
+      }
+    }
+
+    function getGameCounts() {
+      // 在当前 mode 所有平台数据中，按游戏名统计命中次数
+      const counts = {};
+      Object.values(curData()).forEach(d => {
+        (d.items || []).forEach(item => {
+          detectGames(item.title || '', item.author || '', item.tags || []).forEach(g => { counts[g] = (counts[g] || 0) + 1; });
+        });
+      });
+      return counts;
+    }
+
+    function renderGameDropdown(filter = '') {
+      const list = document.getElementById('gameDropdownList');
+      if (!list) return;
+      list.innerHTML = '';
+      const counts = getGameCounts();
+      const f = filter.trim().toLowerCase();
+      // 全量游戏清单（保持用户指定顺序），按搜索过滤
+      const rows = GAME_DICT
+        .map(g => ({ name: g.name, count: counts[g.name] || 0 }))
+        .filter(r => !f || r.name.toLowerCase().includes(f));
+      if (!rows.length) {
+        list.innerHTML = '<div class="hot-game-dropdown__empty">未找到匹配的游戏</div>';
+        return;
+      }
+      rows.forEach(r => {
+        const sel = selectedGames.includes(r.name);
+        const item = document.createElement('div');
+        item.className = 'hot-game-dropdown__item' + (sel ? ' is-selected' : '');
+        item.innerHTML = `<span class="hot-game-dropdown__check">${sel ? '✓' : ''}</span><span>${esc(r.name)}</span>${r.count ? `<span class="hot-game-dropdown__count">${r.count}</span>` : ''}`;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectedGames = sel ? selectedGames.filter(g => g !== r.name) : [...selectedGames, r.name];
+          renderGameChips();
+          renderGameDropdown(filter);
+          renderContent();
+        });
+        list.appendChild(item);
+      });
+    }
+
+    function setupGameSelector() {
+      const box = document.getElementById('gameChipsBox');
+      const dropdown = document.getElementById('gameDropdown');
+      const searchInput = document.getElementById('gameSearchInput');
+      if (!box || !dropdown) return;
+      box.addEventListener('click', (e) => {
+        if (e.target.closest('.chip-selected__remove')) return;
+        dropdown.classList.toggle('is-visible');
+        if (dropdown.classList.contains('is-visible') && searchInput) searchInput.focus();
+      });
+      if (searchInput) {
+        searchInput.addEventListener('input', () => renderGameDropdown(searchInput.value));
+        searchInput.addEventListener('click', (e) => e.stopPropagation());
+      }
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.hot-game-selector')) dropdown.classList.remove('is-visible');
+      });
+    }
+
+    function detectGamesForItem(title, author = '', tags = []) { return detectGames(title, author, tags); }
+
+    function getFilteredItems() {
+      const data = curData()[selectedPlatform];
+      if (!data?.items) return [];
+      return data.items
+        .map(item => ({ ...item, _pk: selectedPlatform, _games: detectGames(item.title || '', item.author || '', item.tags || []) }))
+        .filter(item => selectedGames.length === 0 || selectedGames.some(g => item._games.includes(g)));
+    }
+
+    function renderContent() {
+      const c = document.getElementById('contentArea');
+      const items = getFilteredItems();
+      if (Object.values(curData()).every(d => !d.items?.length)) {
+        const msg = currentMode === 'live'
+          ? '暂无热榜数据，请稍后刷新页面'
+          : (offlineIndex.snapshots.length ? '请选择日期和时间点查看历史快照' : '暂无历史快照数据');
+        c.innerHTML = `<div class="state-empty"><svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"><circle cx="128" cy="128" r="96"/><line x1="128" y1="80" x2="128" y2="136"/><circle cx="128" cy="172" r="8" fill="currentColor" stroke="none"/></svg><p>${msg}</p></div>`;
+        return;
+      }
+      if (!items.length) {
+        c.innerHTML = `<div class="state-empty"><svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"><circle cx="128" cy="128" r="96"/><line x1="80" y1="80" x2="176" y2="176"/><line x1="176" y1="80" x2="80" y2="176"/></svg><p>当前筛选条件下无游戏相关内容</p></div>`;
+        return;
+      }
+      const pdata = PLATFORMS.find(p => p.key === selectedPlatform);
+      let updatedAt = '';
+      if (currentMode === 'live' && curData()[selectedPlatform]?.crawlTime) {
+        updatedAt = `<span class="platform-section__crawl-time">更新于 ${fmtTime(curData()[selectedPlatform].crawlTime)}</span>`;
+      } else if (currentMode === 'offline' && offlineSnapshotId) {
+        const snap = offlineIndex.snapshots.find(s => s.id === offlineSnapshotId);
+        updatedAt = `<span class="platform-section__crawl-time">快照 ${snap ? snap.date + ' ' + snap.time : offlineSnapshotId}</span>`;
+      }
+      c.innerHTML = `<div class="platform-section"><div class="platform-section__header"><span class="platform-badge platform-badge--${pdata.badgeClass}">${pdata.name}</span><span class="platform-section__count">${items.length} 条相关热榜</span>${updatedAt}</div>${renderTable(items)}</div>`;
+    }
+
+    function renderTable(items) {
+      const isBili = items[0]?._pk === 'bilibili' || items[0]?._pk === 'bilibili_game';
+      const cols = isBili
+        ? '<th style="width:56px">排名</th><th>标题 / UP主</th><th style="width:90px;text-align:right">播放量</th>'
+        : '<th style="width:56px">排名</th><th>话题</th><th style="width:90px;text-align:right">热度</th>';
+      const rows = items.map(it => {
+        const isGame = it._games.length > 0;
+        const tags = it._games.map(g => `<span class="game-tag">${g}</span>`).join('');
+        const rawTitle = esc(it.title || '-');
+        const titleMain = isGame && it.url
+          ? `<a class="title-cell__link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${rawTitle}</a>`
+          : rawTitle;
+        const titleCell = isBili
+          ? `<div class="title-cell__text">${titleMain}${tags}<div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">${esc(it.author || '-')}</div></div>`
+          : `<div class="title-cell__text">${titleMain}${tags}</div>`;
+        return `<tr class="${isGame ? 'is-game' : ''}"><td class="rank-cell">${esc(it.rank || '-')}</td><td>${titleCell}</td><td class="heat-cell">${esc(it.heat || it.viewCount || '-')}</td></tr>`;
+      }).join('');
+      return `<div class="hot-table"><table><thead><tr>${cols}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function fmtTime(iso) { try { const d = new Date(iso); return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; } catch { return iso; } }
+
+    init();
+  </script>
+</body>
+</html>
