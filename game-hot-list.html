@@ -769,12 +769,17 @@
       }
     }
 
+    function itemGames(item) {
+      if (Array.isArray(item.games) && item.games.length) return item.games;
+      return detectGames(item.title || '', item.author || '', item.tags || []);
+    }
+
     function getGameCounts() {
       // 在当前 mode 所有平台数据中，按游戏名统计命中次数
       const counts = {};
       Object.values(curData()).forEach(d => {
         (d.items || []).forEach(item => {
-          detectGames(item.title || '', item.author || '', item.tags || []).forEach(g => { counts[g] = (counts[g] || 0) + 1; });
+          itemGames(item).forEach(g => { counts[g] = (counts[g] || 0) + 1; });
         });
       });
       return counts;
@@ -835,7 +840,7 @@
       const data = curData()[selectedPlatform];
       if (!data?.items) return [];
       return data.items
-        .map(item => ({ ...item, _pk: selectedPlatform, _games: detectGames(item.title || '', item.author || '', item.tags || []) }))
+        .map(item => ({ ...item, _pk: selectedPlatform, _games: itemGames(item) }))
         .filter(item => selectedGames.length === 0 || selectedGames.some(g => item._games.includes(g)));
     }
 
@@ -859,7 +864,8 @@
         updatedAt = `<span class="platform-section__crawl-time">更新于 ${fmtTime(curData()[selectedPlatform].crawlTime)}</span>`;
       } else if (currentMode === 'offline' && offlineSnapshotId) {
         const snap = offlineIndex.snapshots.find(s => s.id === offlineSnapshotId);
-        updatedAt = `<span class="platform-section__crawl-time">快照 ${snap ? snap.date + ' ' + snap.time : offlineSnapshotId}</span>`;
+        const snapTime = snap ? (snap.time || (snap.lastUpdated ? fmtTime(snap.lastUpdated) : '')) : '';
+        updatedAt = `<span class="platform-section__crawl-time">快照 ${snap ? snap.date + (snapTime ? ' ' + snapTime : '') : offlineSnapshotId}</span>`;
       }
       c.innerHTML = `<div class="platform-section"><div class="platform-section__header"><span class="platform-badge platform-badge--${pdata.badgeClass}">${pdata.name}</span><span class="platform-section__count">${items.length} 条相关热榜</span>${updatedAt}</div>${renderTable(items)}</div>`;
     }
