@@ -9,8 +9,10 @@ class AppState {
     this._selectedPlatforms = ['douyin'];
 
     const end = latestSelectableDate();
-    this._dateRange = 'latest';
-    this._dateStart = end;
+    // 默认展示最近 30 天，避免首屏只有单日数据点
+    const start = DATES[Math.max(0, DATES.length - 30)];
+    this._dateRange = 'last30';
+    this._dateStart = start;
     this._dateEnd = end;
 
 
